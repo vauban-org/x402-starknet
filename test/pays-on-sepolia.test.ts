@@ -40,7 +40,13 @@ const BIN =
 const STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 const PRICE_WEI = "10000000000000000"; // 0.01 STRK
 
-const ready = Boolean(RPC && ACCOUNTS && PAYER_NAME && FEE_PAYER_NAME && existsSync(BIN));
+// A PUBLIC facilitator instead of a local binary : the served surface, the one
+// a stranger meets. With it set, no process is spawned, no fee-payer account is
+// needed here (the server holds its own), and the merchant address is read from
+// the offer itself.
+const PUBLIC_URL = process.env["ZKPAY_FACILITATOR_URL"];
+
+const ready = Boolean(RPC && ACCOUNTS && PAYER_NAME && (PUBLIC_URL || (FEE_PAYER_NAME && existsSync(BIN))));
 if (!ready) {
   console.warn(
     "SKIPPED : the live Sepolia test needs ZKPAY_STARKNET_RPC_URL, ZKPAY_STARKNET_SNCAST_ACCOUNTS, " +
@@ -99,6 +105,22 @@ describeIf("a value moves on Starknet Sepolia, paid by the foundation's client",
 
   beforeAll(async () => {
     payer = sncast(PAYER_NAME as string);
+    if (PUBLIC_URL) {
+      base = PUBLIC_URL.replace(/\/$/, "");
+      // The merchant is whatever the served offer names ; read it from the 402
+      // the way a stranger would, so the test asserts the SERVED price and
+      // recipient rather than ones it assumed.
+      const r = await fetch(`${base}/v1/quote`);
+      if (r.status !== 402) throw new Error(`${base}/v1/quote answered ${r.status}, not 402`);
+      const doc = JSON.parse(Buffer.from(r.headers.get("payment-required") as string, "base64").toString("utf8")) as {
+        accepts: { scheme: string; network: string; payTo: string; amount: string }[];
+      };
+      const offer = doc.accepts.find((o) => o.scheme === "exact" && o.network === "starknet:SN_SEPOLIA");
+      if (!offer) throw new Error("the served 402 carries no exact/starknet offer");
+      if (offer.amount !== PRICE_WEI) throw new Error(`served price ${offer.amount} is not the ${PRICE_WEI} this test pays`);
+      payTo = offer.payTo;
+      return;
+    }
     feePayer = sncast(FEE_PAYER_NAME as string);
     // The merchant is the fee payer itself : the scheme allows the executor to
     // equal payTo (merchant-sponsored settlement), and it keeps the test's
@@ -134,6 +156,9 @@ describeIf("a value moves on Starknet Sepolia, paid by the foundation's client",
   afterAll(() => {
     child?.kill();
   });
+
+  // Against a public facilitator the settlement is a stranger's settlement in
+  // every respect but one : the payer's key is ours. Say so in the output.
 
   it("pays 0.01 STRK, and the transaction is on the chain", async () => {
     const provider = new RpcProvider({ nodeUrl: RPC as string });
@@ -187,6 +212,6 @@ describeIf("a value moves on Starknet Sepolia, paid by the foundation's client",
     // The merchant received the price. (It also paid the gas as fee payer, so
     // the net change is price minus gas ; the Transfer above is the exact one.)
     expect(balanceAfter).not.toBe(balanceBefore);
-    console.log(`SETTLED ON SEPOLIA : ${receipt.transaction}`);
+    console.log(`SETTLED ON SEPOLIA : ${receipt.transaction}${PUBLIC_URL ? ` (served by ${PUBLIC_URL})` : ""}`);
   }, 180_000);
 });
