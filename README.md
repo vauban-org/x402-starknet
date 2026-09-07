@@ -109,6 +109,14 @@ unmerged pull request, and the only published Starknet client follows an
 earlier, incompatible draft. A server that implements the specification had
 nobody to be paid by. This is the missing half.
 
+## Source, issues
+
+This directory is mirrored to [github.com/vauban-org/x402-starknet](https://github.com/vauban-org/x402-starknet)
+on every push from the Vauban Pay monorepo, which is where the facilitator
+(`zkpay-facilitator`, Rust) lives. Issues and pull requests are welcome on the
+mirror; the tests that need the facilitator binary or a funded Sepolia account
+skip there and say so.
+
 ## License
 
 Apache-2.0.

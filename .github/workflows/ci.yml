@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# The public mirror's CI (github.com/vauban-org/x402-starknet). This directory
+# is mirrored from the Vauban Pay monorepo on every push ; this file lives
+# inside it so the mirror carries its own gate.
+#
+# What runs here : typecheck, build, and the vitest suite. The suites that
+# need the `zkpay-facilitator` binary (hermetic, mock chain) or a funded
+# Sepolia account (live) SKIP here and say so in the log ; they run in the
+# monorepo's CI against the real binary. A green run here proves the package
+# builds and its pure logic holds, nothing about a settlement.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
