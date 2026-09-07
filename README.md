@@ -27,15 +27,33 @@ const res = await fetchWithPayment("https://demo.pay.vauban.tech/v1/quote");
 Any object with `address` and `signMessage(typedData)` works as the signer, so
 a wallet adapter fits where the `Account` is.
 
+## It has paid for real
+
+On 2026-09-07, this mechanism, driven by `@x402/fetch`, paid 0.01 STRK on
+Starknet Sepolia to a live `zkpay-facilitator`:
+
+```
+tx    0x1b88b79ffaa84344d36fdab48e322a86d687a3eb4e9e2f45edae4c01b5b548d
+block 14708171, SUCCEEDED, ACCEPTED_ON_L2
+```
+
+The test that produced it waits for the transaction on the chain and looks for
+the `Transfer(payer -> merchant, price)` event before it believes the receipt
+(`test/pays-on-sepolia.test.ts`). To our knowledge it is the first settlement
+of the registered `exact`/Starknet scheme on a real chain with the
+foundation's own client.
+
 ## What it establishes, and what it does not
 
 - The mechanism produces payloads a spec-conforming facilitator accepts. It is
   tested against the real `zkpay-facilitator` binary, driven by the
   foundation's own `@x402/fetch` client, with `starknet.js` doing the hashing
   and signing; that test lives in `test/`.
-- That test settles against an **in-memory chain**. Every receipt it produces
-  says so (`transaction: "mock:…"`, `extra.mock: true`). Nothing in this
-  package moves value; the facilitator's chain adapter decides that.
+- The hermetic test settles against an **in-memory chain** and every receipt
+  it produces says so (`transaction: "mock:…"`, `extra.mock: true`). The live
+  test above needs a node and two funded testnet accounts, and skips loudly
+  without them. Nothing in this package moves value by itself; the
+  facilitator's chain adapter decides that.
 - STRK is the default asset on both networks. `@x402/core` refuses any other
   asset unless you allow it in `spendControls`; that is the client's spend cap
   doing its job, not a defect of this package.
