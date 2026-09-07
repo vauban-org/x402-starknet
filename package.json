@@ -1,0 +1,40 @@
+{
+  "name": "@vauban-pay/x402-starknet",
+  "version": "0.1.0",
+  "description": "x402 v2 client mechanism for the registered `exact` scheme on Starknet (SNIP-9 outside execution signed as SNIP-12 typed data). Plugs into @x402/core's x402Client; the payer signs with any starknet.js Account.",
+  "license": "Apache-2.0",
+  "author": "Vauban Research <research@vauban.tech>",
+  "homepage": "https://pay.vauban.tech",
+  "bugs": { "email": "research@vauban.tech" },
+  "keywords": ["x402", "starknet", "snip-9", "snip-12", "payment", "exact", "agent"],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@x402/core": "^2.24.0",
+    "starknet": ">=7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@x402/core": "2.25.0",
+    "@x402/fetch": "2.25.0",
+    "starknet": "^8.9.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.0"
+  }
+}
