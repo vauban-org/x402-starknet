@@ -1,8 +1,10 @@
 # `@vauban-pay/x402-starknet`
 
-The client half of the registered x402 v2 `exact` scheme on Starknet
-(`x402-foundation/x402`, `specs/schemes/exact/scheme_exact_starknet.md`), as a
-mechanism for `@x402/core`'s `x402Client`.
+Both halves of the registered x402 v2 `exact` scheme on Starknet
+(`x402-foundation/x402`, `specs/schemes/exact/scheme_exact_starknet.md`): the
+client half, as a mechanism for `@x402/core`'s `x402Client`, and the merchant
+half (`@vauban-pay/x402-starknet/server`), as a mechanism for
+`x402ResourceServer` and every `@x402/*` middleware built on it.
 
 The payer signs a SNIP-9 v2 outside execution (SNIP-12 typed data, revision 1)
 authorizing exactly one `transfer` from its own account; the facilitator submits
@@ -26,6 +28,48 @@ const res = await fetchWithPayment("https://demo.pay.vauban.tech/v1/quote");
 
 Any object with `address` and `signMessage(typedData)` works as the signer, so
 a wallet adapter fits where the `Account` is.
+
+## Accept it, as a merchant
+
+A merchant built with the foundation's middleware accepts Starknet by pointing
+its facilitator client at a facilitator that implements the scheme and
+registering the merchant half. Routes, prices and `payTo` are declared the
+way the foundation documents them for any other network:
+
+```ts
+import express from "express";
+import { HTTPFacilitatorClient, x402ResourceServer } from "@x402/core/server";
+import { paymentMiddleware } from "@x402/express";
+import { registerExactStarknetServerScheme } from "@vauban-pay/x402-starknet/server";
+
+const server = registerExactStarknetServerScheme(
+  new x402ResourceServer(new HTTPFacilitatorClient({ url: "https://demo.pay.vauban.tech/starknet" })),
+);
+const app = express();
+app.use(paymentMiddleware({
+  "GET /weather": {
+    accepts: { scheme: "exact", network: "starknet:SN_SEPOLIA", price: "0.01", payTo: "0x…your account…" },
+  },
+}, server));
+app.get("/weather", (_req, res) => res.json({ weather: "sunny" }));
+```
+
+`https://demo.pay.vauban.tech/starknet` implements `/supported`, `/verify` and
+`/settle` for `exact` on `starknet:SN_SEPOLIA`, announces its submitter
+(`extra.feePayer`) and pays the gas of every settlement it broadcasts. Testnet
+only; its `/supported` says so by naming the network.
+
+A price is STRK (`"0.01"`, `"0.01 STRK"` or `0.01`, converted on digits, 18
+decimals) or an explicit `{ amount, asset }` in atomic units for any other
+token. Dollar prices are refused: there is no default stable asset here and no
+rate would be applied. The merchant half copies the facilitator's `feePayer`
+into every requirement and refuses an override, because the specification
+makes the facilitator reject any other value (rule 1).
+
+`test/merchant-with-stock-express.test.ts` runs exactly this merchant, with a
+different `payTo` and price than the facilitator's own offer, against the real
+`zkpay-facilitator` binary, paid by the foundation's client with the client
+half.
 
 ## It has paid for real
 

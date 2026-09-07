@@ -1,12 +1,24 @@
 {
   "name": "@vauban-pay/x402-starknet",
-  "version": "0.1.0",
-  "description": "x402 v2 client mechanism for the registered `exact` scheme on Starknet (SNIP-9 outside execution signed as SNIP-12 typed data). Plugs into @x402/core's x402Client; the payer signs with any starknet.js Account.",
+  "version": "0.2.0",
+  "description": "x402 v2 mechanism for the registered `exact` scheme on Starknet, both halves: the client (SNIP-9 outside execution signed as SNIP-12 typed data, with any starknet.js Account) for @x402/core's x402Client, and the merchant side for x402ResourceServer and every @x402 middleware, against a facilitator that implements the scheme.",
   "license": "Apache-2.0",
   "author": "Vauban Research <research@vauban.tech>",
   "homepage": "https://pay.vauban.tech",
-  "bugs": { "email": "research@vauban.tech" },
-  "keywords": ["x402", "starknet", "snip-9", "snip-12", "payment", "exact", "agent"],
+  "bugs": {
+    "email": "research@vauban.tech"
+  },
+  "keywords": [
+    "x402",
+    "starknet",
+    "snip-9",
+    "snip-12",
+    "payment",
+    "exact",
+    "agent",
+    "facilitator",
+    "merchant"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -16,9 +28,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    },
+    "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -29,9 +51,12 @@
     "starknet": ">=7.0.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^20.0.0",
     "@x402/core": "2.25.0",
+    "@x402/express": "^2.25.0",
     "@x402/fetch": "2.25.0",
+    "express": "^5.2.1",
     "starknet": "^8.9.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
