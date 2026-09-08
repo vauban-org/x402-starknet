@@ -1,6 +1,6 @@
 {
   "name": "@vauban-pay/x402-starknet",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "x402 v2 mechanism for the registered `exact` scheme on Starknet, both halves: the client (SNIP-9 outside execution signed as SNIP-12 typed data, with any starknet.js Account) for @x402/core's x402Client, and the merchant side for x402ResourceServer and every @x402 middleware, against a facilitator that implements the scheme.",
   "license": "Apache-2.0",
   "author": "Vauban Research <research@vauban.tech>",

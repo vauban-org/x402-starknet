@@ -21,11 +21,12 @@
 // merchant-supplied override, which would only produce authorizations nobody
 // present can submit.
 //
-// What it refuses : dollar prices. There is no stable asset in the default
-// table, and converting "$0.10" into STRK at some rate would be a price the
-// merchant never set. A merchant who prices in a token other than STRK gives
-// `{ amount, asset }` explicitly, in atomic units, and the scheme passes it
-// through untouched.
+// Prices : "$0.10" is USDC, the way every other network's mechanism reads a
+// dollar string (USDC at the addresses the foundation's reference
+// implementation lists, 6 decimals) ; "0.01" or "0.01 STRK" is STRK ;
+// "1.50 USDC" names a default asset by symbol ; `{ amount, asset }` in atomic
+// units passes through untouched for any other token. No rate is ever
+// applied : a dollar string never becomes STRK.
 
 import type {
   AssetAmount,
@@ -130,8 +131,10 @@ export class ExactStarknetServerScheme implements SchemeNetworkServer {
    * A price becomes `{ amount, asset }` :
    * - `{ amount, asset }` passes through, checked, in atomic units ;
    * - `"0.01"`, `"0.01 STRK"` or the number `0.01` is STRK, 18 decimals,
-   *   converted on digits ;
-   * - `"$…"` is refused : no stable asset is defaulted, and no rate is applied.
+   *   converted on digits ; `"1.50 USDC"` is USDC, 6 decimals (a default
+   *   asset named by symbol) ;
+   * - `"$0.10"` is USDC, 6 decimals, like every other network's mechanism ;
+   *   no rate is applied and a dollar string never becomes STRK.
    */
   async parsePrice(price: Price, network: Network): Promise<AssetAmount> {
     this.assertNetwork(network);
@@ -146,16 +149,25 @@ export class ExactStarknetServerScheme implements SchemeNetworkServer {
       return { amount: String(amount), asset, ...(price.extra ? { extra: price.extra } : {}) };
     }
     const text = typeof price === "number" ? String(price) : String(price).trim();
+    // "$0.10" is USDC, as on every other network ; "0.01" is STRK ; "0.01 STRK"
+    // or "1.50 USDC" names one of the default assets by symbol.
+    let symbol: string;
+    let number: string;
     if (text.startsWith("$")) {
+      symbol = "USDC";
+      number = text.slice(1).trim();
+    } else {
+      const m = /^(.*?)\s*([A-Za-z]{2,10})$/.exec(text);
+      symbol = m ? (m[2] as string).toUpperCase() : "STRK";
+      number = m ? (m[1] as string) : text;
+    }
+    const entry = DEFAULT_ASSETS[network].find((a) => a.symbol === symbol);
+    if (!entry) {
       throw new Error(
-        "exact/starknet: dollar prices are refused ; there is no default stable asset on Starknet here " +
-          "and no rate would be applied. Price in STRK (\"0.01\") or give { amount, asset } in atomic units.",
+        `exact/starknet: "${symbol}" is not a default asset on ${network} (${DEFAULT_ASSETS[network].map((a) => a.symbol).join(", ")}) ; give { amount, asset } in atomic units`,
       );
     }
-    const strk = DEFAULT_ASSETS[network][0];
-    if (!strk) throw new Error(`exact/starknet: no default asset on ${network}`);
-    const withoutSymbol = text.replace(/\s*STRK$/i, "");
-    return { amount: decimalToAtomic(withoutSymbol, strk.decimals), asset: strk.asset };
+    return { amount: decimalToAtomic(number, entry.decimals), asset: entry.asset };
   }
 
   /**

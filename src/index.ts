@@ -43,12 +43,20 @@ export const TRANSFER_SELECTOR =
 const DOMAIN_NAME = "Account.execute_from_outside";
 
 /**
- * The default asset per network : STRK, the network's own fee token, 18
- * decimals. `@x402/core`'s client refuses, by default, any offer whose asset
- * is neither a default of the mechanism nor allowed in its `spendControls` ;
- * that is a spend cap, not a bug, and this table is what makes a STRK offer
- * payable without the user configuring anything. Any other token stays behind
- * the user's explicit `spendControls.allowedAssets`, which is the point.
+ * The default assets per network. `@x402/core`'s client refuses, by default,
+ * any offer whose asset is neither a default of the mechanism nor allowed in
+ * its `spendControls` ; that is a spend cap, not a bug, and this table is what
+ * makes an offer payable without the user configuring anything. Any other
+ * token stays behind the user's explicit `spendControls.allowedAssets`.
+ *
+ * Two entries per network, since 0.2.1 :
+ * - STRK, the network's own fee token, 18 decimals, first because it is what
+ *   a Sepolia faucet hands out and what this facilitator prices in ;
+ * - USDC, 6 decimals, at the addresses the foundation's reference
+ *   implementation (x402-foundation/x402 #3021) lists as its only defaults.
+ *   Measured 2026-09-08 : that client, with default spend controls, refused
+ *   a STRK offer outright ; a client of either implementation must be able to
+ *   pay the other's offer as shipped, so both tables now overlap.
  */
 export const DEFAULT_ASSETS: Record<StarknetNetwork, readonly { asset: string; decimals: number; symbol: string }[]> = {
   "starknet:SN_SEPOLIA": [
@@ -57,12 +65,22 @@ export const DEFAULT_ASSETS: Record<StarknetNetwork, readonly { asset: string; d
       decimals: 18,
       symbol: "STRK",
     },
+    {
+      asset: "0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343",
+      decimals: 6,
+      symbol: "USDC",
+    },
   ],
   "starknet:SN_MAIN": [
     {
       asset: "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
       decimals: 18,
       symbol: "STRK",
+    },
+    {
+      asset: "0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb",
+      decimals: 6,
+      symbol: "USDC",
     },
   ],
 };

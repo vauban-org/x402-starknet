@@ -234,6 +234,10 @@ describe("the merchant half, on its own", () => {
     expect((await scheme.parsePrice("0.01 STRK", "starknet:SN_SEPOLIA")).amount).toBe("10000000000000000");
     expect((await scheme.parsePrice(0.01, "starknet:SN_SEPOLIA")).amount).toBe("10000000000000000");
     expect((await scheme.parsePrice("0.01", "starknet:SN_SEPOLIA")).asset).toBe(STRK);
+    // USDC by symbol, 6 decimals, at the reference implementation's address.
+    const usdc = await scheme.parsePrice("1.50 USDC", "starknet:SN_SEPOLIA");
+    expect(usdc).toEqual({ amount: "1500000", asset: "0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343" });
+    await expect(scheme.parsePrice("1 DOGE", "starknet:SN_SEPOLIA")).rejects.toThrow(/not a default asset/);
   });
 
   it("passes an explicit { amount, asset } through untouched", async () => {
@@ -244,8 +248,12 @@ describe("the merchant half, on its own", () => {
     });
   });
 
-  it("refuses dollar prices, too many decimals, and networks the specification does not register", async () => {
-    await expect(scheme.parsePrice("$0.10", "starknet:SN_SEPOLIA")).rejects.toThrow(/dollar prices are refused/);
+  it("reads a dollar price as USDC, and refuses too many decimals and unregistered networks", async () => {
+    expect(await scheme.parsePrice("$0.10", "starknet:SN_SEPOLIA")).toEqual({
+      amount: "100000",
+      asset: "0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343",
+    });
+    expect((await scheme.parsePrice("$1", "starknet:SN_MAIN")).asset).toBe("0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb");
     expect(() => decimalToAtomic("0.0000000000000000001", 18)).toThrow(/fractional digits/);
     await expect(scheme.parsePrice("0.01", "starknet:sepolia" as never)).rejects.toThrow(/not one the specification registers/);
   });

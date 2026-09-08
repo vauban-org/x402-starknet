@@ -59,10 +59,13 @@ app.get("/weather", (_req, res) => res.json({ weather: "sunny" }));
 (`extra.feePayer`) and pays the gas of every settlement it broadcasts. Testnet
 only; its `/supported` says so by naming the network.
 
-A price is STRK (`"0.01"`, `"0.01 STRK"` or `0.01`, converted on digits, 18
-decimals) or an explicit `{ amount, asset }` in atomic units for any other
-token. Dollar prices are refused: there is no default stable asset here and no
-rate would be applied. The merchant half copies the facilitator's `feePayer`
+A price is a dollar string (`"$0.10"` is USDC, 6 decimals, at the addresses
+the foundation's reference implementation lists), STRK (`"0.01"`, `"0.01 STRK"`
+or `0.01`, 18 decimals), a default asset by symbol (`"1.50 USDC"`), or an
+explicit `{ amount, asset }` in atomic units for any other token; everything is
+converted on digits and no rate is ever applied. Both STRK and USDC are default
+assets of the client half too, so a stock client pays either offer without
+touching its spend controls. The merchant half copies the facilitator's `feePayer`
 into every requirement and refuses an override, because the specification
 makes the facilitator reject any other value (rule 1).
 
