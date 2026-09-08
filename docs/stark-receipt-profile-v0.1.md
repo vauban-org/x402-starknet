@@ -268,14 +268,38 @@ Cost landmark : the daily K=10 batch weighs 6,548 steps and fills 6.3 % of
 the 2^22 Stone bucket ; at 5,155 steps the v3 K=7/F=1 fills 0.05 %. A leaf
 costs 3 preimage felts and nothing else in the channel.
 
+**A STARK proof of a v3 batch, verified by our verifier.** The same K=7/F=1
+batch was proved and verified on the evening of 2026-09-08, which moves the
+statement from "the circuit commits the right root" to "a proof of this
+circuit is accepted, and a tampered proof is refused". Toolchain **scarb
+2.17.0** (the Rust work plan's, distinct from the 2.13.1 of the table above) :
+
+| quantity | value (K=7, F=1, scarb 2.17.0) |
+|---|---|
+| `program_hash` v3 = `BATCH_FOREIGN_VK`, pinned | `0x55ab9e6f44cecaaee5dfe605d539acb48affec42e6e572c3b22872311cdb5b5` |
+| `batch_root` v3 at `output[3]` | `0x051ca97a26ed4666ff335bc04fa15384b118e9c8280bc5177aeff500552ccea5` |
+| `scarb prove`, wall clock | **1 min 17 s** (11.3 GiB peak, 8-core / 31 GiB workstation) |
+| proof, committed compressed | **1.85 MiB** (12.70 MiB uncompressed) |
+| verdict | **ESTABLISHED** by the mixed-batch verification path on the real Stwo backend |
+
+The root at `output[3]` is **the same felt under 2.13.1 and under 2.17.0**,
+while the `program_hash` differs between them (`0x016b9737…` against the value
+above). A matching root is therefore NOT evidence that two proofs attest the
+same program : only `output[2]` says that, which is why identity binding is a
+gate separate from root binding.
+
 ### 6.2 What is NOT measured
 
-- **No v3 anchoring on-chain yet.** The facts above are PREDICTED ; the K=7
-  one is on its way through the Stone rail (Apodix porter) at the time of
-  writing, and this section will carry the registered fact, the block and
+- **No v3 anchoring on-chain yet.** The facts in the §6.1 table are PREDICTED ;
+  the K=7 one is on its way through the Stone rail (Apodix porter) at the time
+  of writing, and this section will carry the registered fact, the block and
   the real cost when it lands. Until then the cost of a v3 anchor is an
   extrapolation from the five v2 anchors (the cost depends neither on K nor
   on F, but that remains to be observed on a v3 fact).
+- **No v3 proof on the Stone rail.** The proof verified above is a Stwo proof
+  on the **blake2s** channel, the only channel our Rust verifier can read
+  back. A poseidon252 proof, the one Starknet would verify natively, and the
+  one the Stone rail consumes, has not been produced for a v3 batch.
 - **No real Tamga leaf.** The measured leaf comes from Apodix ; the exact
   shape of Tamga's chain head is not fixed yet, and the profile does not
   claim to know it.
