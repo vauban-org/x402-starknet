@@ -69,7 +69,14 @@ makes the facilitator reject any other value (rule 1).
 `test/merchant-with-stock-express.test.ts` runs exactly this merchant, with a
 different `payTo` and price than the facilitator's own offer, against the real
 `zkpay-facilitator` binary, paid by the foundation's client with the client
-half.
+half. `test/merchant-pays-on-sepolia.test.ts` did it for real on 2026-09-08
+against the public facilitator: a stock `@x402/express` merchant with its own
+address received exactly 0.005 STRK, gas paid by the facilitator:
+
+```
+tx    0x78f6773ecdff976e85de26742c7fe1f80f7ea50a1c8b492a245a56cac874912
+block 14732675, SUCCEEDED, ACCEPTED_ON_L2
+```
 
 ## It has paid for real
 
