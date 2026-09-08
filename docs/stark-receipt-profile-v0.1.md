@@ -231,8 +231,13 @@ under a v2 tag.
    two raw files and python suffice (measured by a third party on
    2026-09-08 : red on the first statement, green after a fix).
 
-Three distinct verdicts, never merged : established, refuted, indeterminate
-(an unreachable registry, an unknown label).
+Three distinct verdicts, never merged : established, refuted, indeterminate.
+And two NAMED indeterminates, never conflated (Tamga's reading, 2026-09-08) :
+`indeterminate:label` (an origin label the verifier does not know : the leaf
+is in the root, its meaning is not established) and `indeterminate:anchor`
+(an unreachable registry or a fact not read back : the root is recomputed,
+the anchoring is not observed). A digest that does not match after applying
+`enc` is **refuted**, not indeterminate.
 
 ## 6. What is measured, what is not (2026-09-08)
 
