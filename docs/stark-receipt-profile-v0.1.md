@@ -40,10 +40,19 @@ An anchored receipt carries, in addition to the extension's receipt :
     "batch_size": 59,
     "registry": { "chain": "starknet:SN_SEPOLIA", "contract": "0x…", "kind": "integrity-fact-registry" },
     "epoch": { "id": 8, "root": { "alg": "keccak-256", "enc": "none", "hex": "0x…" },
-               "chains": ["eip155:11155111", "eip155:84532"] }
+               "chains": ["eip155:11155111"] }
   }
 }
 ```
+
+A note on `chains`, added 2026-09-08 : the field lists the chains where the
+epoch seal is RECORDED, not those where a mirror exists. Apodix verified that
+day that only epoch 1 carries its Base receipts ; epochs 2 to 8 have `null` for
+the Base transaction hashes, and their manifests say the mirror was READ on the
+contract, not written by a transaction. A mirror without a receipt therefore
+does not go into `chains` : a verifier reading `eip155:84532` there would look
+for a transaction that does not exist and return "refuted" where the truth is
+"not recorded".
 
 ### 2.1 Digests : a triple, never a bare value
 
@@ -209,6 +218,67 @@ leaves in the clear under `foreign_leaves` ; the two halves go together or
 not at all, a v3 tag without a leaf vector being refused just like leaves
 under a v2 tag.
 
+### 4.6 A settlement from ANOTHER chain : `'BASE_SETTLEMENT_V1'`
+
+The first label that designates neither an epoch root nor a chain head, but
+**one individual settlement that was settled elsewhere**. It exists because the
+x402 merchant already takes payment on Base : recounted at the source on
+2026-09-08, the discovery index's offers give 133 `eip155:8453` offers across a
+hundred resources, 34 Solana, zero Starknet. Asking such a merchant to come and
+settle on Starknet is a chain migration ; under this label, they change nothing.
+
+**The digest** is the SHA-256 of the JCS (RFC 8785) form of a JSON object of
+**seven fields**, and of nothing else :
+
+```
+{ "amount", "asset", "network", "payTo", "payer", "resource", "transaction" }
+```
+
+The keys are the ones x402 v2 already uses (`payTo`, not `pay_to`) : a verifier
+copies the fields across from its receipt, it does not translate them. The
+values are STRINGS ; `amount` is decimal, in the asset's smallest unit, because
+a `u256` does not survive a round trip through JSON numbers in most languages.
+The four hex fields are lowercase ; `network` keeps its case, a CAIP-2 reference
+being case-sensitive (`starknet:SN_SEPOLIA`). Sorted by UTF-16 code units,
+`payTo` comes BEFORE `payer` : a case-insensitive sort would yield a different
+digest.
+
+**Why exactly these seven.** They are exactly the ones a third party can both
+reconstruct from the x402 receipt it holds and read back on the chain. Six are
+on the chain (the `Transfer` gives four, the emitting contract the fifth, the
+chain id the sixth) ; the seventh, `resource`, comes from the merchant's 402
+challenge, and it is in the preimage because a digest that did not name what was
+bought would commit to a transfer, not to the settlement of a resource. Two
+fields are deliberately ABSENT : **no timestamp** (it is not in the receipt, and
+the chain's is not the merchant's ; carrying one would make the digest
+computable by exactly one of the two parties) and **no `success`** (a failed
+receipt has nothing to anchor, and carrying the flag would make "this failure
+was presented in that batch" expressible, which nobody asked for and which a
+reader would misread as a payment).
+
+A verifier holding a receipt whose `resource` differs by one character computes
+a different digest and renders **refuted**, not indeterminate. That is the
+correct verdict : it is not the same settlement record.
+
+**What the fact establishes for such a leaf** is §4.4 and not one comma more :
+that this digest was presented under the label `'BASE_SETTLEMENT_V1'` in this
+batch, before the block of the fact's registration, by the program whose
+`program_hash` is the fact's. **NOTHING about the validity of the Base
+transaction** : not that it was included, not that it succeeded, not that the
+amount moved. The circuit reads no EVM chain. The reader reads Base back for
+all of that, and can do so without us : the six chain fields are readable with
+`cast receipt`, the seventh is in their receipt, and the recipe fits on one line.
+
+The `V1` in the label is not decoration : the label names a RECIPE, and the day
+the seven fields change, the label changes with them rather than meaning two
+things at once.
+
+Recipe, golden vector and two digests of REAL settlements :
+`docs/testing/recensement-base-2026-09-08.md` (internal). The two
+implementations (`receipt_digest.rs` in Rust, `recenser-reglements-base.py` in
+python) are checked against each other on the same vector by a bench that reads
+the constant pinned on the other side.
+
 ## 5. Verification procedure (offline, then read-back)
 
 1. Recompute the receipt's digest according to the extension's
@@ -253,7 +323,12 @@ the anchoring is not observed). A digest that does not match after applying
 The v3 circuit was executed on REAL batches with a REAL foreign leaf : the
 leaf is `('APODIX_EPOCH_ROOT_V1', keccak-256 root of Apodix's epoch 8,
 0x0340584b…d51d, published in `anchors/epoch-0008.json`)`, sealed on Ethereum
-Sepolia and Base Sepolia.
+Sepolia. A mirror on Base Sepolia exists, but Apodix verified on 2026-09-08
+that only epoch 1 has its Base receipts recorded : epochs 2 to 8 carry `null`
+for the Base transaction hashes, and the manifests say the mirror was read on
+the contract rather than transacted. So this profile does NOT promise a Base
+seal, and a reader who asks for the Base receipt of epoch 8 is right to be
+told there is none.
 
 | quantity | K=2 (committed fixture of 2026-09-04) + F=1 | K=7 (real daily batch of 2026-09-07) + F=1 |
 |---|---|---|
